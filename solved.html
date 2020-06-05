@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8">
+        <title>Laberinto</title>
+        <style>
+            body{
+                font-family: arial;
+                margin: 0;
+            }
+            .form-group{
+                display: block;
+                margin-bottom: 1em;
+            }
+            .form-group label{
+                font-weight: bold;
+                display: block;
+                margin-bottom: .5em;
+            }
+            .form-group .form-control{
+                display: block;
+                border: 1px solid black;
+            }
+            .full-width{
+                width: 100%;
+            }
+            .textarea{
+                font-size: 1.5em;
+                min-height: 150px;
+            }
+            .container{
+                display: block;
+                max-width: 750px;
+                margin: 0 auto;
+            }
+            .texto-centrado{
+                text-align: center;
+            }
+            #canvas{
+                border: 1px solid #4287f5;
+                margin: 0 auto;
+                display: block;
+            }
+        </style>
+    </head>
+    <body>
+        <h1 class="texto-centrado">Generador de laberintos</h1>
+        <p>
+            Crear un reloj que mida el tiempo cada vez que un usuario inicia un juego. <br>
+            Crear el ranking de los mejores jugadores, usando <code>localStorage</code> y <code>JSON</code>
+        </p>
+        <form action="" class="container">
+            <div class="form-group">
+                <label>Laberinto</label>
+                <textarea name="laberinto" class="full-width textarea"></textarea>
+            </div>
+            <div class="form-group">
+                <button type="submit">Generar</button>
+            </div>
+        </form>
+        <div class=" canvas_div" style="display: none;">
+            <div class="form-group">
+                <label class="texto-centrado">Laberinto generado</label>
+                <canvas width="750" height="375" id="canvas"></canvas>
+            </div>
+            <div class="form-group texto-centrado">
+                <button class="back">Volver a generar</button>
+            </div>
+        </div>
+        <script>
+        (function(){
+            var d = document
+                qs = 'querySelector',
+                ael = "addEventListener",
+                frm = d[qs]("form"), // document.querySelector
+                canvas = d[qs]("#canvas"),
+                ctx = canvas.getContext("2d"),
+                canvas_div = d[qs](".canvas_div"),
+                textarea = d[qs]("textarea"),
+                back_button = d[qs](".back"),
+                brick = d.createElement("img"),
+                character = d.createElement("img")
+                lineas = [],
+                character_loc = {
+                    "x" : 0,
+                    "y" : 0
+                },
+                brick_width = 15,
+                brick_height = 15,
+                canvas_width = 0,
+                canvas_height = 0;
+
+            brick.src = "img/brick.png";
+            character.src = "img/guy.png";
+
+            function limpiarCanvas(){
+                var ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+
+            function generarLaberinto(laberinto){
+                
+
+                lineas = laberinto.split("\n");
+                character_loc.x = 0;
+                character_loc.y = 0;
+
+                // cambiar el tamaño del canvas
+                for (var i=0; i<lineas.length; i++) {
+                    var linea = lineas[i];
+                    if (canvas_width<linea.length) {
+                        canvas_width = linea.length;
+                    }
+
+                    if (i==0) {
+                        character_loc.x = linea.indexOf(" ");
+                    }
+                }
+                canvas_height = lineas.length;
+                canvas.setAttribute("width", (canvas_width * brick_width) + 20);
+                canvas.setAttribute("height", (canvas_height * brick_height) + 20);
+                
+                dibujarLaberinto();
+            }
+
+            function dibujarLaberinto(){
+                limpiarCanvas();
+
+                // dibujar el laberinto
+                for(var i=0; i<lineas.length; i++){
+                    var linea = lineas[i];
+                    for(var j=0; j<linea.length; j++){
+                        var c = linea[j];
+                        if (c!="#") continue;
+                        ctx.drawImage(brick, 
+                            j*brick_height + 10,
+                            i*brick_width + 10, 
+                            brick_width, 
+                            brick_height
+                        );
+                    }
+                }
+
+                // dibujar al personaje
+                ctx.drawImage(character, 
+                    (character_loc.x * brick_width) + 10,
+                    (character_loc.y * brick_height) + 10,
+                    brick_width, 
+                    brick_height
+                );                
+            }
+
+            function mover(desplazamiento){
+                // character_loc ubicacion actual del personaje
+                // desplazamiento es el movimiento
+
+                if (desplazamiento.x!=0) {
+                    // lineas = ["### #","#   #", "# ###"]
+                    var nuevo_x = character_loc.x + desplazamiento.x,
+                        linea = lineas[character_loc.y];
+                    
+                    if (linea[nuevo_x]!="#" && nuevo_x>=0) {
+                        character_loc.x += desplazamiento.x;
+                    }
+                }
+
+                if (desplazamiento.y!=0) {
+                    var nuevo_y = character_loc.y + desplazamiento.y;
+
+                    if (nuevo_y>=0 && nuevo_y<lineas.length) {
+                        var linea = lineas[nuevo_y];
+
+                        if (linea[character_loc.x]!="#") {
+                            character_loc.y += desplazamiento.y;
+                        }
+                    }
+                }
+
+                dibujarLaberinto();
+            }
+
+            frm[ael]("submit", function(evt){
+                evt.preventDefault();
+                
+                generarLaberinto(textarea.value);
+                frm.style.display = "none";
+                canvas_div.style.display = "block";
+            });
+
+            back_button[ael]("click", function(){
+               frm.style.display = "block";
+                canvas_div.style.display = "none";
+            });
+
+
+            document[ael]("keydown", function(evt){
+                var desplazamiento = {
+                    x : 0,
+                    y : 0
+                };
+                switch(evt.key) {
+                    case "ArrowDown":
+                        desplazamiento.y = 1;
+                        break;
+                    case "ArrowUp":
+                        desplazamiento.y = -1;
+                        break;
+                    case "ArrowLeft":
+                        desplazamiento.x = -1;
+                        break;
+                    case "ArrowRight":
+                        desplazamiento.x = 1;
+                }
+
+                mover(desplazamiento);
+            });
+
+        })();
+
+        </script>
+    </body>
+</html>
