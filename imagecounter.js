@@ -1,0 +1,1 @@
+alert("hay "+ document.querySelectorAll("img").length + " imagenes en esta pagina");
